@@ -137,6 +137,10 @@ filetype_t path_is_dir(const char *path) {
 static int do_create_whiteout(const char *path, int branch_rw, enum whiteout mode) {
 	DBG("%s\n", path);
 
+	// Disable whiteout creation
+	RETURN(0);
+	break;
+	
 	char metapath[PATHLEN_MAX];
 
 	if (BUILD_PATH(metapath, METADIR, path)) RETURN(-1);
