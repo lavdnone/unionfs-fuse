@@ -139,7 +139,6 @@ static int do_create_whiteout(const char *path, int branch_rw, enum whiteout mod
 
 	// Disable whiteout creation
 	RETURN(0);
-	break;
 	
 	char metapath[PATHLEN_MAX];
 
