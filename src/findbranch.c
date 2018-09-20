@@ -80,7 +80,7 @@ static int find_branch(const char *path, searchflag_t flag) {
 				if (uopt.branches[i].rw) RETURN(i);
 				break;
 			case ROONLY:
-				// we need a rw-branch
+				// we need a ro-branch
 				if (uopt.branches[i].ro) RETURN(i);
 				break;
 			default:
@@ -105,7 +105,7 @@ static int find_branch(const char *path, searchflag_t flag) {
 }
 
 /**
- * Find a ro or rw branch.
+ * Find a ro or rw branch. Make it show only RO branch for reads
  */
 int find_rorw_branch(const char *path) {
 	DBG("%s\n", path);
