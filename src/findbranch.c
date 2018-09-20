@@ -114,6 +114,15 @@ int find_rorw_branch(const char *path) {
 }
 
 /**
+ * Find rw branch
+ */
+int find_rw_branch(const char *path) {
+	DBG("%s\n", path);
+	int res = find_branch(path, RWONLY);
+	RETURN(res);
+}
+
+/**
  * Find a writable branch. If file does not exist, we check for
  * the parent directory.
  * @path 	- the path to find or to copy (with last element cut off)
