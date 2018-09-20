@@ -9,7 +9,8 @@
 
 typedef enum searchflag {
 	RWRO,
-	RWONLY
+	RWONLY,
+	ROONLY
 } searchflag_t;
 
 int find_rorw_branch(const char *path);
