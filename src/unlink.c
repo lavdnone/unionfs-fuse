@@ -76,7 +76,7 @@ int unionfs_unlink(const char *path) {
 	DBG("%s\n", path);
 
 	// always delete file on RW branch
-	int i = find_branch(path, RWONLY);
+	int i = find_rw_branch(path);
 	if (i == -1) RETURN(errno);
 
 	int res;
