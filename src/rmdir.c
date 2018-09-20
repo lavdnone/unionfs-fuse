@@ -89,7 +89,7 @@ int unionfs_rmdir(const char *path) {
 
 	if (dir_not_empty(path)) return -ENOTEMPTY;
 
-	//always delete on RO
+	//always delete on RW
 	int i = find_rw_branch(path);
 	if (i == -1) return -errno;
 
