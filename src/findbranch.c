@@ -79,6 +79,10 @@ static int find_branch(const char *path, searchflag_t flag) {
 				// we need a rw-branch
 				if (uopt.branches[i].rw) RETURN(i);
 				break;
+			case ROONLY:
+				// we need a rw-branch
+				if (uopt.branches[i].ro) RETURN(i);
+				break;
 			default:
 				USYSLOG(LOG_ERR, "%s: Unknown flag %d\n", __func__, flag);
 			}
@@ -105,7 +109,7 @@ static int find_branch(const char *path, searchflag_t flag) {
  */
 int find_rorw_branch(const char *path) {
 	DBG("%s\n", path);
-	int res = find_branch(path, RWRO);
+	int res = find_branch(path, ROONLY);
 	RETURN(res);
 }
 
