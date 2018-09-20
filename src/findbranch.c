@@ -81,7 +81,7 @@ static int find_branch(const char *path, searchflag_t flag) {
 				break;
 			case ROONLY:
 				// we need a ro-branch
-				if (uopt.branches[i].ro) RETURN(i);
+				if (!uopt.branches[i].rw) RETURN(i);
 				break;
 			default:
 				USYSLOG(LOG_ERR, "%s: Unknown flag %d\n", __func__, flag);
