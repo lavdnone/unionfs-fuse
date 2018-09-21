@@ -440,74 +440,19 @@ static int unionfs_release(const char *path, struct fuse_file_info *fi) {
 static int unionfs_rename(const char *from, const char *to) {
 	DBG("from %s to %s\n", from, to);
 
-	bool is_dir = false; // is 'from' a file or directory
-
-	int j = find_rw_branch_cutlast(to);
-	if (j == -1) RETURN(-errno);
-
-	int i = find_rorw_branch(from);
-	if (i == -1) RETURN(-errno);
-
-	if (!uopt.branches[i].rw) {
-		i = find_rw_branch_cow_common(from, true);
-		if (i == -1) RETURN(-errno);
-	}
-
-	if (i != j) {
-		USYSLOG(LOG_ERR, "%s: from and to are on different writable branches %d vs %d, which"
-		       "is not supported yet.\n", __func__, i, j);
-		RETURN(-EXDEV);
-	}
-
+	//always picking RW branch which is first
 	char f[PATHLEN_MAX], t[PATHLEN_MAX];
-	if (BUILD_PATH(f, uopt.branches[i].path, from)) RETURN(-ENAMETOOLONG);
-	if (BUILD_PATH(t, uopt.branches[i].path, to)) RETURN(-ENAMETOOLONG);
-
-	filetype_t ftype = path_is_dir(f);
-	if (ftype == NOT_EXISTING)
-		RETURN(-ENOENT);
-	else if (ftype == IS_DIR)
-		is_dir = true;
+	if (BUILD_PATH(f, uopt.branches[0].path, from)) RETURN(-ENAMETOOLONG);
+	if (BUILD_PATH(t, uopt.branches[0].path, to)) RETURN(-ENAMETOOLONG);
 
 	int res;
-	if (!uopt.branches[i].rw) {
-		// since original file is on a read-only branch, we copied the from file to a writable branch,
-		// but since we will rename from, we also need to hide the from file on the read-only branch
-		if (is_dir)
-			res = hide_dir(from, i);
-		else
-			res = hide_file(from, i);
-		if (res) RETURN(-errno);
-	}
-
 	res = rename(f, t);
 
 	if (res == -1) {
 		int err = errno; // unlink() might overwrite errno
-		// if from was on a read-only branch we copied it, but now rename failed so we need to delete it
-		if (!uopt.branches[i].rw) {
-			if (unlink(f))
-				USYSLOG(LOG_ERR, "%s: cow of %s succeeded, but rename() failed and now "
-				       "also unlink()  failed\n", __func__, from);
-
-			if (remove_hidden(from, i))
-				USYSLOG(LOG_ERR, "%s: cow of %s succeeded, but rename() failed and now "
-				       "also removing the whiteout  failed\n", __func__, from);
-		}
 		RETURN(-err);
 	}
 
-	if (uopt.branches[i].rw) {
-		// A lower branch still *might* have a file called 'from', we need to delete this.
-		// We only need to do this if we have been on a rw-branch, since we created
-		// a whiteout for read-only branches anyway.
-		if (is_dir)
-			maybe_whiteout(from, i, WHITEOUT_DIR);
-		else
-			maybe_whiteout(from, i, WHITEOUT_FILE);
-	}
-
-	remove_hidden(to, i); // remove hide file (if any)
 	RETURN(0);
 }
 
