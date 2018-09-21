@@ -10,20 +10,27 @@ First branch must be RW second RO.
 
 usage
 ============
-
+```bash
 unionfs -o cow -o dirs=/home/test/t01=RW:/home/test/testbr/t01=RO /home/test/t01merge
+```
 
 in /etc/fstab:
+```bash
 unionfs#/home/test/t01=rw:/home/test/testbr/t01=ro /home/test/t01merge fuse allow_other,cow,direct_io,_netdev 0 0
+```
 
-if you need to wait for underlying network file-system to mount first 
+if you need to wait for underlying network file-system to mount first like NFS or GlusterFS
+```bash
 unionfs#/home/test/t01=rw:/home/test/testbr/t01=ro /home/test/t01merge fuse x-systemd.requires-mounts-for=/home/test/t01,allow_other,cow,direct_io,_netdev 0 0
+```
 
 install
 ============
 
+```bash
 cd ~
 git clone --single-branch -b stable https://github.com/lavdnone/unionfs-fuse.git
 cd unionfs-fuse
 make
 sudo make install
+```
