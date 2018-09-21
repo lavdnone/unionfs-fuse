@@ -61,11 +61,8 @@
 static int unionfs_chmod(const char *path, mode_t mode) {
 	DBG("%s\n", path);
 
-	int i = find_rw_branch_cow(path);
-	if (i == -1) RETURN(-errno);
-
 	char p[PATHLEN_MAX];
-	if (BUILD_PATH(p, uopt.branches[i].path, path)) RETURN(-ENAMETOOLONG);
+	if (BUILD_PATH(p, uopt.branches[0].path, path)) RETURN(-ENAMETOOLONG);
 
 	int res = chmod(p, mode);
 	if (res == -1) RETURN(-errno);
@@ -76,11 +73,8 @@ static int unionfs_chmod(const char *path, mode_t mode) {
 static int unionfs_chown(const char *path, uid_t uid, gid_t gid) {
 	DBG("%s\n", path);
 
-	int i = find_rw_branch_cow(path);
-	if (i == -1) RETURN(-errno);
-
 	char p[PATHLEN_MAX];
-	if (BUILD_PATH(p, uopt.branches[i].path, path)) RETURN(-ENAMETOOLONG);
+	if (BUILD_PATH(p, uopt.branches[0].path, path)) RETURN(-ENAMETOOLONG);
 
 	int res = lchown(p, uid, gid);
 	if (res == -1) RETURN(-errno);
@@ -95,11 +89,8 @@ static int unionfs_chown(const char *path, uid_t uid, gid_t gid) {
 static int unionfs_create(const char *path, mode_t mode, struct fuse_file_info *fi) {
 	DBG("%s\n", path);
 
-	int i = find_rw_branch_cutlast(path);
-	if (i == -1) RETURN(-errno);
-
 	char p[PATHLEN_MAX];
-	if (BUILD_PATH(p, uopt.branches[i].path, path)) RETURN(-ENAMETOOLONG);
+	if (BUILD_PATH(p, uopt.branches[0].path, path)) RETURN(-ENAMETOOLONG);
 
 	// NOTE: We should do:
 	//       Create the file with mode=0 first, otherwise we might create
@@ -114,8 +105,7 @@ static int unionfs_create(const char *path, mode_t mode, struct fuse_file_info *
 	fchmod(res, mode);
 
 	fi->fh = res;
-	remove_hidden(path, i);
-
+	
 	DBG("fd = %" PRIx64 "\n", fi->fh);
 	RETURN(0);
 }
@@ -169,11 +159,8 @@ static int unionfs_fsync(const char *path, int isdatasync, struct fuse_file_info
 static int unionfs_getattr(const char *path, struct stat *stbuf) {
 	DBG("%s\n", path);
 
-	int i = find_rorw_branch(path);
-	if (i == -1) RETURN(-errno);
-
 	char p[PATHLEN_MAX];
-	if (BUILD_PATH(p, uopt.branches[i].path, path)) RETURN(-ENAMETOOLONG);
+	if (BUILD_PATH(p, uopt.branches[1].path, path)) RETURN(-ENAMETOOLONG);
 
 	int res = lstat(p, stbuf);
 	if (res == -1) RETURN(-errno);
@@ -238,25 +225,13 @@ static void * unionfs_init(struct fuse_conn_info *conn) {
 static int unionfs_link(const char *from, const char *to) {
 	DBG("from %s to %s\n", from, to);
 
-	// hardlinks do not work across different filesystems so we need a copy of from first
-	int i = find_rw_branch_cow(from);
-	if (i == -1) RETURN(-errno);
-
-	int j = __find_rw_branch_cutlast(to, i);
-	if (j == -1) RETURN(-errno);
-
-	DBG("from branch: %d to branch: %d\n", i, j);
-
 	char f[PATHLEN_MAX], t[PATHLEN_MAX];
-	if (BUILD_PATH(f, uopt.branches[i].path, from)) RETURN(-ENAMETOOLONG);
-	if (BUILD_PATH(t, uopt.branches[j].path, to)) RETURN(-ENAMETOOLONG);
+	if (BUILD_PATH(f, uopt.branches[0].path, from)) RETURN(-ENAMETOOLONG);
+	if (BUILD_PATH(t, uopt.branches[0].path, to)) RETURN(-ENAMETOOLONG);
 
 	int res = link(f, t);
 	if (res == -1) RETURN(-errno);
 
-	// no need for set_owner(), since owner and permissions are copied over by link()
-
-	remove_hidden(to, i); // remove hide file (if any)
 	RETURN(0);
 }
 
@@ -309,11 +284,8 @@ static int unionfs_ioctl(const char *path, int cmd, void *arg, struct fuse_file_
 static int unionfs_mkdir(const char *path, mode_t mode) {
 	DBG("%s\n", path);
 
-	int i = find_rw_branch_cutlast(path);
-	if (i == -1) RETURN(-errno);
-
 	char p[PATHLEN_MAX];
-	if (BUILD_PATH(p, uopt.branches[i].path, path)) RETURN(-ENAMETOOLONG);
+	if (BUILD_PATH(p, uopt.branches[0].path, path)) RETURN(-ENAMETOOLONG);
 
 	int res = mkdir(p, 0);
 	if (res == -1) RETURN(-errno);
@@ -328,11 +300,8 @@ static int unionfs_mkdir(const char *path, mode_t mode) {
 static int unionfs_mknod(const char *path, mode_t mode, dev_t rdev) {
 	DBG("%s\n", path);
 
-	int i = find_rw_branch_cutlast(path);
-	if (i == -1) RETURN(-errno);
-
 	char p[PATHLEN_MAX];
-	if (BUILD_PATH(p, uopt.branches[i].path, path)) RETURN(-ENAMETOOLONG);
+	if (BUILD_PATH(p, uopt.branches[0].path, path)) RETURN(-ENAMETOOLONG);
 
 	int file_type = mode & S_IFMT;
 	int file_perm = mode & (S_PROT_MASK);
@@ -358,8 +327,6 @@ static int unionfs_mknod(const char *path, mode_t mode, dev_t rdev) {
 	// NOW, that the file has the proper owner we may set the requested mode
 	chmod(p, file_perm);
 
-	remove_hidden(path, i);
-
 	RETURN(0);
 }
 
@@ -368,12 +335,10 @@ static int unionfs_open(const char *path, struct fuse_file_info *fi) {
 
 	int i;
 	if (fi->flags & (O_WRONLY | O_RDWR)) {
-		i = find_rw_branch_cutlast(path);
+		i = 0;
 	} else {
-		i = find_rorw_branch(path);
+		i = 1;
 	}
-
-	if (i == -1) RETURN(-errno);
 
 	char p[PATHLEN_MAX];
 	if (BUILD_PATH(p, uopt.branches[i].path, path)) RETURN(-ENAMETOOLONG);
@@ -382,9 +347,8 @@ static int unionfs_open(const char *path, struct fuse_file_info *fi) {
 	if (fd == -1) RETURN(-errno);
 
 	if (fi->flags & (O_WRONLY | O_RDWR)) {
-		// There might have been a hide file, but since we successfully
+		// There might have been a file, but since we successfully
 		// wrote to the real file, a hide file must not exist anymore
-		remove_hidden(path, i);
 	}
 
 	// This makes exec() fail
@@ -408,11 +372,8 @@ static int unionfs_read(const char *path, char *buf, size_t size, off_t offset, 
 static int unionfs_readlink(const char *path, char *buf, size_t size) {
 	DBG("%s\n", path);
 
-	int i = find_rorw_branch(path);
-	if (i == -1) RETURN(-errno);
-
 	char p[PATHLEN_MAX];
-	if (BUILD_PATH(p, uopt.branches[i].path, path)) RETURN(-ENAMETOOLONG);
+	if (BUILD_PATH(p, uopt.branches[1].path, path)) RETURN(-ENAMETOOLONG);
 
 	int res = readlink(p, buf, size - 1);
 
@@ -581,29 +542,22 @@ static int unionfs_statfs(const char *path, struct statvfs *stbuf) {
 static int unionfs_symlink(const char *from, const char *to) {
 	DBG("from %s to %s\n", from, to);
 
-	int i = find_rw_branch_cutlast(to);
-	if (i == -1) RETURN(-errno);
-
 	char t[PATHLEN_MAX];
-	if (BUILD_PATH(t, uopt.branches[i].path, to)) RETURN(-ENAMETOOLONG);
+	if (BUILD_PATH(t, uopt.branches[0].path, to)) RETURN(-ENAMETOOLONG);
 
 	int res = symlink(from, t);
 	if (res == -1) RETURN(-errno);
 
 	set_owner(t); // no error check, since creating the file succeeded
 
-	remove_hidden(to, i); // remove hide file (if any)
 	RETURN(0);
 }
 
 static int unionfs_truncate(const char *path, off_t size) {
 	DBG("%s\n", path);
 
-	int i = find_rw_branch_cow(path);
-	if (i == -1) RETURN(-errno);
-
 	char p[PATHLEN_MAX];
-	if (BUILD_PATH(p, uopt.branches[i].path, path)) RETURN(-ENAMETOOLONG);
+	if (BUILD_PATH(p, uopt.branches[0].path, path)) RETURN(-ENAMETOOLONG);
 
 	int res = truncate(p, size);
 
@@ -615,11 +569,8 @@ static int unionfs_truncate(const char *path, off_t size) {
 static int unionfs_utimens(const char *path, const struct timespec ts[2]) {
 	DBG("%s\n", path);
 
-	int i = find_rw_branch_cow(path);
-	if (i == -1) RETURN(-errno);
-
 	char p[PATHLEN_MAX];
-	if (BUILD_PATH(p, uopt.branches[i].path, path)) RETURN(-ENAMETOOLONG);
+	if (BUILD_PATH(p, uopt.branches[0].path, path)) RETURN(-ENAMETOOLONG);
 
 #ifdef UNIONFS_HAVE_AT
 	int res = utimensat(0, p, ts, AT_SYMLINK_NOFOLLOW);
@@ -657,11 +608,8 @@ static int unionfs_getxattr(const char *path, const char *name, char *value, siz
 #endif
 	DBG("%s\n", path);
 
-	int i = find_rorw_branch(path);
-	if (i == -1) RETURN(-errno);
-
 	char p[PATHLEN_MAX];
-	if (BUILD_PATH(p, uopt.branches[i].path, path)) RETURN(-ENAMETOOLONG);
+	if (BUILD_PATH(p, uopt.branches[1].path, path)) RETURN(-ENAMETOOLONG);
 
 #if __APPLE__
 	int res = getxattr(p, name, value, size, position, XATTR_NOFOLLOW);
@@ -677,11 +625,8 @@ static int unionfs_getxattr(const char *path, const char *name, char *value, siz
 static int unionfs_listxattr(const char *path, char *list, size_t size) {
 	DBG("%s\n", path);
 
-	int i = find_rorw_branch(path);
-	if (i == -1) RETURN(-errno);
-
 	char p[PATHLEN_MAX];
-	if (BUILD_PATH(p, uopt.branches[i].path, path)) RETURN(-ENAMETOOLONG);
+	if (BUILD_PATH(p, uopt.branches[1].path, path)) RETURN(-ENAMETOOLONG);
 
 #if __APPLE__
 	int res = listxattr(p, list, size, XATTR_NOFOLLOW);
@@ -697,11 +642,8 @@ static int unionfs_listxattr(const char *path, char *list, size_t size) {
 static int unionfs_removexattr(const char *path, const char *name) {
 	DBG("%s\n", path);
 
-	int i = find_rw_branch_cow(path);
-	if (i == -1) RETURN(-errno);
-
 	char p[PATHLEN_MAX];
-	if (BUILD_PATH(p, uopt.branches[i].path, path)) RETURN(-ENAMETOOLONG);
+	if (BUILD_PATH(p, uopt.branches[0].path, path)) RETURN(-ENAMETOOLONG);
 
 #if __APPLE__
 	int res = removexattr(p, name, XATTR_NOFOLLOW);
@@ -721,11 +663,8 @@ static int unionfs_setxattr(const char *path, const char *name, const char *valu
 #endif
 	DBG("%s\n", path);
 
-	int i = find_rw_branch_cow(path);
-	if (i == -1) RETURN(-errno);
-
 	char p[PATHLEN_MAX];
-	if (BUILD_PATH(p, uopt.branches[i].path, path)) RETURN(-ENAMETOOLONG);
+	if (BUILD_PATH(p, uopt.branches[0].path, path)) RETURN(-ENAMETOOLONG);
 
 #if __APPLE__
 	int res = setxattr(p, name, value, size, position, flags | XATTR_NOFOLLOW);
