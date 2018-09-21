@@ -28,6 +28,8 @@ install
 ============
 
 ```bash
+sudo yum install fuse fuse-devel
+
 cd ~
 git clone --single-branch -b stable https://github.com/lavdnone/unionfs-fuse.git
 cd unionfs-fuse
