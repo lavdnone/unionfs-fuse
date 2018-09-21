@@ -226,7 +226,7 @@ int parse_branches(const char *arg) {
 
 	//First branchmust be RW second RO.
 	if (!uopt.branches[0].rw || uopt.branches[1].rw) {
-		fprintf(stderr, "First branchmust be RW second RO.\n");
+		fprintf(stderr, "First branch must be RW second RO.\n");
 		return 0;
 	} else {
 		return uopt.nbranches;
