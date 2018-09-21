@@ -7,13 +7,13 @@
 .ft R
 .fi
 ..
-.TH "unionfs" "8" "2016" "unionfs-fuse 2.0" ""
+.TH "read wright separated fs" "9" "2018" "from unionfs-fuse 2.0" ""
 .SH "NAME"
 unionfs\-fuse \- A userspace unionfs implementation
 .SH "SYNOPSIS"
 .B unionfs
 \fB[\-o \fIoption1\fP \-o \fIoption2\fP ... \-o \fIoptionN\fP ]\fR
-             \fBtop_branch:lower_branch:...:lowest_branch \fR
+             \fBrw_branch:ro_branch \fR
              \fBmount_point\fR
 .SH "DESCRIPTION"
 \fBunionfs\fR overlays several directory into one single mount point.
