@@ -16,7 +16,7 @@ If you app has enormous number of reads, compared to writes, using this can allo
 
 This can also hide changes made on system files on a separate path, effectively disregarding them but keeping record of what intruder was trying to change. Whoever will be making changes might not even figure that changes are not really applied and file system is effectively read only.
 
-Not using `cow` (copy on write) option will make existing files unchangeable but all new files will go to writable path. This can be aceived with MergeFS or aufs as well.
+Not using `cow` (copy on write) option will make existing files unchangeable but all new files will go to writable path. This can be achieved with MergeFS or aufs as well.
 
 This was tested on terabytes of emails for purpose of stable release, initially having perfectly stable unionfs-fuse.
 
