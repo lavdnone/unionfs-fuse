@@ -10,7 +10,7 @@ Write operations go to RW branch, Read operations go from RO branch.
 
 First branch must be RW second RO. 
 
-Lets say you have GlusterFS through number of sites as replicated volume for redundancy. To the moment of this writing there is no way you can get fast response for small file loads. As an examplke maildir dovecot mail storage format. And you can't switch from one-file one-email format as you want multiple nodes to access same emails. In most cases you can access local (for each site) copy of underlying GlusterFS brick, which has all the files. Using this unionfs build result mount point will pull reads locally with great small file speeds, but will do writes to the cluster to keep replicated volume in tact. 
+Lets say you have GlusterFS through number of sites as replicated volume for redundancy. To the moment of this writing there is no way you can get fast response for small file loads. As an example maildir dovecot mail storage format. And you can't switch from one-file one-email format as you want multiple nodes to access same emails. In most cases you can access local (for each site) copy of underlying GlusterFS brick, which has all the files. Using this unionfs build result mount point will pull reads locally with great small file speeds, but will do writes to the cluster to keep replicated volume in tact. 
 
 If you app has enormous number of reads, compared to writes, using this can allow to separate reads to faster uplinked mount (10Gb subnet) and have rear writes go through lower grade network (100Mb). Or if you want to have writes go through another layer of some converting file system.
 
