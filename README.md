@@ -1,5 +1,4 @@
-[![Build Status](https://travis-ci.org/rpodgorny/unionfs-fuse.svg?branch=master)](https://travis-ci.org/rpodgorny/unionfs-fuse)
-[![Gratipay](http://img.shields.io/gratipay/rpodgorny.svg)](https://gratipay.com/rpodgorny/)
+[![Build Status](https://travis-ci.org/lavdnone/unionfs-fuse.svg?branch=stable)](https://travis-ci.org/lavdnone/unionfs-fuse)
 
 multipathIO-fuse made of unionfs-fuse
 ============
